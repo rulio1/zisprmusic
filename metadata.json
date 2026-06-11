@@ -1,0 +1,6 @@
+{
+  "name": "Zispr",
+  "description": "Zispr é um aplicativo de streaming de áudio completo com reprodutor de música avançado, playlists e DJ de IA personalizado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

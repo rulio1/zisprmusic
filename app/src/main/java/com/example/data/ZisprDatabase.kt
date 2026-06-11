@@ -47,6 +47,13 @@ data class PlaybackHistory(
     val playedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "users")
+data class User(
+    @PrimaryKey val username: String, // username or email used to log in
+    val displayName: String,
+    val passwordHash: String // plaintext or basic encoded password for local simulation
+)
+
 // ==========================================
 // 2. Data Access Object (DAO)
 // ==========================================
@@ -119,6 +126,13 @@ interface ZisprDao {
     
     @Query("DELETE FROM playback_history")
     suspend fun clearHistory()
+
+    // Users
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertUser(user: User)
+
+    @Query("SELECT * FROM users WHERE username = :username LIMIT 1")
+    suspend fun getUserByUsername(username: String): User?
 }
 
 // ==========================================
@@ -126,8 +140,8 @@ interface ZisprDao {
 // ==========================================
 
 @Database(
-    entities = [Track::class, Playlist::class, PlaylistTrack::class, PlaybackHistory::class],
-    version = 1,
+    entities = [Track::class, Playlist::class, PlaylistTrack::class, PlaybackHistory::class, User::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -184,4 +198,8 @@ class ZisprRepository(private val zisprDao: ZisprDao) {
     }
     
     suspend fun clearHistory() = zisprDao.clearHistory()
+
+    // Users
+    suspend fun insertUser(user: User) = zisprDao.insertUser(user)
+    suspend fun getUserByUsername(username: String): User? = zisprDao.getUserByUsername(username)
 }

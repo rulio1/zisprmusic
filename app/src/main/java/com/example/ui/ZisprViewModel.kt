@@ -45,6 +45,16 @@ class ZisprViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentScreen = MutableStateFlow(ZisprScreen.HOME)
     val currentScreen: StateFlow<ZisprScreen> = _currentScreen.asStateFlow()
 
+    // Authentication State
+    private val _currentUser = MutableStateFlow<User?>(null)
+    val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+
+    private val _authError = MutableStateFlow<String?>(null)
+    val authError: StateFlow<String?> = _authError.asStateFlow()
+
+    private val _isAuthLoading = MutableStateFlow(false)
+    val isAuthLoading: StateFlow<Boolean> = _isAuthLoading.asStateFlow()
+
     // Database content trackers
     val allTracks: StateFlow<List<Track>> = repository.allTracks.stateIn(
         scope = viewModelScope,
@@ -151,7 +161,84 @@ class ZisprViewModel(application: Application) : AndroidViewModel(application) {
                 repository.addTrackToPlaylist(playlist2Id, "forest_whisper")
                 repository.addTrackToPlaylist(playlist2Id, "coding_rhythms")
             }
+
+            // Seed default users for instant developer login
+            val isUserDbEmpty = database.zisprDao().getUserByUsername("dev") == null
+            if (isUserDbEmpty) {
+                repository.insertUser(User("dev", "Dev Zispr", "dev123"))
+                repository.insertUser(User("admin", "Administrador", "admin"))
+            }
         }
+    }
+
+    // Authentication methods
+    fun login(username: String, passwordCheck: String) {
+        val trimmedUser = username.trim()
+        if (trimmedUser.isBlank() || passwordCheck.isBlank()) {
+            _authError.value = "Preencha todos os campos."
+            return
+        }
+        _isAuthLoading.value = true
+        _authError.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            val user = repository.getUserByUsername(trimmedUser)
+            withContext(Dispatchers.Main) {
+                _isAuthLoading.value = false
+                if (user != null && user.passwordHash == passwordCheck) {
+                    _currentUser.value = user
+                    _authError.value = null
+                } else {
+                    _authError.value = "Usuário ou senha inválidos."
+                }
+            }
+        }
+    }
+
+    fun signup(username: String, displayName: String, passwordCheck: String) {
+        val trimmedUser = username.trim()
+        val trimmedName = displayName.trim()
+        if (trimmedUser.isBlank() || trimmedName.isBlank() || passwordCheck.isBlank()) {
+            _authError.value = "Preencha todos os campos."
+            return
+        }
+        if (trimmedUser.length < 3) {
+            _authError.value = "Usuário deve ter no mínimo 3 caracteres."
+            return
+        }
+        if (passwordCheck.length < 4) {
+            _authError.value = "A senha deve ter no mínimo 4 caracteres."
+            return
+        }
+        _isAuthLoading.value = true
+        _authError.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = repository.getUserByUsername(trimmedUser)
+            withContext(Dispatchers.Main) {
+                if (existing != null) {
+                    _isAuthLoading.value = false
+                    _authError.value = "Nome de usuário já cadastrado."
+                } else {
+                    val newUser = User(trimmedUser, trimmedName, passwordCheck)
+                    repository.insertUser(newUser)
+                    _isAuthLoading.value = false
+                    _currentUser.value = newUser
+                    _authError.value = null
+                }
+            }
+        }
+    }
+
+    fun logout() {
+        if (playbackManager.isPlaying.value) {
+            playbackManager.togglePlayPause()
+        }
+        _currentUser.value = null
+        _authError.value = null
+        navigateTo(ZisprScreen.HOME)
+    }
+
+    fun clearAuthError() {
+        _authError.value = null
     }
 
     // Screen navigation setters

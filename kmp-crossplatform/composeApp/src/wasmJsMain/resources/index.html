@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zispr Player - Web</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #121212;
+            font-family: sans-serif;
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script type="text/javascript" src="composeApp.js" defer></script>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Compose Multiplatform will render the compiled Skia layout onto this canvas canvas element -->
+        <canvas id="ComposeTarget"></canvas>
+    </div>
+</body>
+</html>
